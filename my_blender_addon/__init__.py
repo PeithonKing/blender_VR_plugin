@@ -3,7 +3,7 @@ bl_info = {
     "author": "Aritra Mukhopdhyay",
     "version": (0, 0, 2),
     "blender": (5, 0, 0),
-    "location": "Properties Editor > Object Properties",
+    "location": "View3D > Sidebar > Face Gasket",
     "description": "Step-by-step wizard for processing face gaskets",
     "category": "Pipeline",
 }

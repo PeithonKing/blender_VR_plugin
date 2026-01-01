@@ -1,4 +1,4 @@
-import math
+import numpy as np
 import bpy
 import os
 
@@ -33,20 +33,35 @@ class FACEGASKET_OT_start_wizard(bpy.types.Operator):
         face_obj = context.selected_objects[0]
         face_obj.name = "FaceMesh"
         
-        # 3. Create Helper Spline (Closed Loop, Y=100 plane)
-        # Rotating 90deg on X to make it stand up in the XZ plane
-        bpy.ops.curve.primitive_bezier_circle_add(
-            radius=50, 
-            location=(0, 100, 20),
-            rotation=(math.pi / 2, 0, 0)
-        )
-        helper_obj = context.active_object
-        helper_obj.name = "HelperSpline"
+        # 3. Create Helper Spline from Data
+        # Format: [CO_X, CO_Y, CO_Z, HL_X, HL_Y, HL_Z, HR_X, HR_Y, HR_Z]
+        data_rows = np.loadtxt("/home/aritra/Documents/temp/vr_face_gasket/python/my_blender_addon/assets/points.csv", delimiter=",")
+        data_rows[:, (1, 4, 7)] = 60
+
+        # Create Curve Data
+        curve_data = bpy.data.curves.new('HelperSpline', type='CURVE')
+        curve_data.dimensions = '3D'
+        curve_data.resolution_u = 12
         
-        # Subdivide to get more points (4 * (1+4) = 20 points)
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.curve.subdivide(number_cuts=4)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        # Create Spline
+        spline = curve_data.splines.new('BEZIER')
+        spline.bezier_points.add(len(data_rows) - 1)
+        
+        for i, row in enumerate(data_rows):
+            bp = spline.bezier_points[i]
+            bp.co = row[0:3]
+            bp.handle_left = row[3:6]
+            bp.handle_right = row[6:9]
+            bp.handle_left_type = 'FREE'
+            bp.handle_right_type = 'FREE'
+
+        spline.use_cyclic_u = True # Close loop
+        
+        # Create Object
+        helper_obj = bpy.data.objects.new("HelperSpline", curve_data)
+        context.collection.objects.link(helper_obj)
+        context.view_layer.objects.active = helper_obj
+        helper_obj.select_set(True)
 
         # Lock Y coordinate
         helper_obj.lock_location[1] = True
@@ -97,3 +112,4 @@ class FACEGASKET_OT_reset_wizard(bpy.types.Operator):
         props.step = 'START'
         self.report({'INFO'}, "Wizard Reset and Scene Cleared.")
         return {'FINISHED'}
+

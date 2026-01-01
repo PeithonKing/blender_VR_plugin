@@ -4,9 +4,9 @@ class FACEGASKET_PT_main_panel(bpy.types.Panel):
     """Main Wizard Panel"""
     bl_label = "Face Gasket Wizard"
     bl_idname = "FACEGASKET_PT_main_panel"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Face Gasket"
 
     def draw(self, context):
         layout = self.layout

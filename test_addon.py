@@ -1,44 +1,74 @@
-import bpy
-import os
-import sys
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Add current directory to path so we can import the addon
-sys.path.append(os.getcwd())
 
-try:
-    import my_blender_addon
-    print("Module imported successfully.")
-except ImportError as e:
-    print(f"Failed to import module: {e}")
-    sys.exit(1)
 
-# Register the addon manually since we are not installing it via zip
-try:
-    my_blender_addon.register()
-    print("Addon registered successfully.")
-except Exception as e:
-    print(f"Failed to register addon: {e}")
-    sys.exit(1)
+data_rows = np.array([
+    # 0: Center Top (Fixed)
+    [0.0, 68.511, 0.0, 11.501, 68.158, 0.291, -18.854, 69.091, -0.478],
+    
+    # --- X-NEGATIVE SIDE (User Provided) ---
+    # 1: (-45.572, 52.412, 0)
+    [-45.572, 52.412, 0, -30.994, 64.392, -0.000, -50.900, 48.034, -0.000],
+    # 2: (-54.571, 37.213, 0)
+    [-54.571, 37.213, 0, -52.523, 43.798, 0.035, -56.036, 32.503, -0.025],
+    # 3: (-55.437, 24.609, -0.123)
+    [-55.437, 24.609, -0.123, -55.709, 29.533, -0.039, -54.950, 15.774, -0.274],
+    # 4: (-51.404, 2.31, -0.668)
+    [-51.404, 2.31, -0.668, -54.976, 10.407, -0.664, -47.374, -6.824, -0.673],
+    # 5: (-35.892, -18.012, -0.077)
+    [-35.892, -18.012, -0.077, -44.305, -12.638, -0.251, -33.247, -19.702, -0.023],
+    
+    # 6: (-28.043, -19.752, 0)
+    [-28.043, -19.752, 0, -29.932, -22.259, -0.036, -23.521, -13.753, 0.087],
+    # 7: (-37.222, -2.839, 0)
+    [-37.222, -2.839, 0, -34.602, -9.880, 0.054, -40.667, 6.422, -0.071],
+    # 8: (-42.623, 21.887, -0.362)
+    [-42.623, 21.887, -0.362, -44.326, 12.153, -0.376, -41.187, 30.096, -0.350],
+    # 9: (-31.259, 39.954, 0)
+    [-31.259, 39.954, 0, -38.219, 35.371, -0.078, -20.942, 46.747, 0.115],
+    
+    # 10: Center Bottom (Fixed)
+    [0.0, 44.847, 0.0,  -11.789, 45.109, -3.678,  11.685, 44.588, 3.645],
+    
+    # --- X-POSITIVE SIDE (Mirrored Manually) ---
+    # 11: Mirror of 9
+    [31.259, 39.954, 0, 20.942, 46.747, 0.115, 38.219, 35.371, -0.078],
+    # 12: Mirror of 8
+    [42.623, 21.887, -0.362, 41.187, 30.096, -0.350, 44.326, 12.153, -0.376],
+    # 13: Mirror of 7
+    [37.222, -2.839, 0, 40.667, 6.422, -0.071, 34.602, -9.880, 0.054],
+    # 14: Mirror of 6
+    [28.043, -19.752, 0, 23.521, -13.753, 0.087, 29.932, -22.259, -0.036],
+    
+    # 15: Mirror of 5
+    [35.892, -18.012, -0.077, 33.247, -19.702, -0.023, 44.305, -12.638, -0.251],
+    # 16: Mirror of 4
+    [51.404, 2.31, -0.668, 47.374, -6.824, -0.673, 54.976, 10.407, -0.664],
+    # 17: Mirror of 3
+    [55.437, 24.609, -0.123, 54.950, 15.774, -0.274, 55.709, 29.533, -0.039],
+    # 18: Mirror of 2
+    [54.571, 37.213, 0, 56.036, 32.503, -0.025, 52.523, 43.798, 0.035],
+    # 19: Mirror of 1
+    [45.572, 52.412, 0, 50.900, 48.034, -0.000, 30.994, 64.392, -0.000],
+])
 
-# Test the operator
-try:
-    # Check if 'Monkey' exists (should not)
-    if "Suzanne" in bpy.data.objects:
-        print("Error: Suzanne object already exists!")
-        sys.exit(1)
+data_rows[:, 2] = 0
 
-    # Run the operator
-    bpy.ops.myaddon.add_object()
+# np.savetxt("my_blender_addon/assets/points.csv", data_rows, delimiter=",")
+data_rows = np.loadtxt("my_blender_addon/assets/points.csv", delimiter=",")
 
-    # Check if 'Suzanne' exists (should now exist)
-    if "Suzanne" in bpy.data.objects:
-        print("Success: Suzanne object created!")
-    else:
-        print("Error: Suzanne object NOT created!")
-        sys.exit(1)
 
-except Exception as e:
-    print(f"Operator execution failed: {e}")
-    sys.exit(1)
+pts = data_rows[:, 0:3]
 
-print("All tests passed.")
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+
+ax.scatter(pts[:,0], pts[:,1], pts[:,2])
+ax.plot(pts[:,0], pts[:,1], pts[:,2])
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+
+plt.show()
