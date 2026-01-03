@@ -9,8 +9,9 @@ class FaceGasketProperties(bpy.types.PropertyGroup):
         description="Current step in the wizard workflow",
         items=[
             ('START', "Start", "Select file and begin"),
-            ('ALIGN', "Align", "Align helper mesh"),
-            ('PROCESS', "Process", "Cut and place logo"),
+            ('ALIGN', "Align", "Align face mesh"),
+            ('ALIGN_COVER', "Align Cover", "Align face cover with mesh"),
+            ('PROCESS', "Process", "Processing"),
             ('FINISH', "Finish", "Finalize and export"),
         ],
         default='START'

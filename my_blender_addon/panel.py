@@ -21,8 +21,10 @@ class FACEGASKET_PT_main_panel(bpy.types.Panel):
             self.draw_start_step(layout, props)
         elif props.step == 'ALIGN':
             self.draw_align_step(layout, props)
+        elif props.step == 'ALIGN_COVER':
+            self.draw_align_cover_step(layout, props)
         elif props.step == 'PROCESS':
-            layout.label(text="Processing Step (Coming Soon)")
+            self.draw_process_step(layout, props)
         elif props.step == 'FINISH':
             layout.label(text="Finalize Step (Coming Soon)")
 
@@ -46,7 +48,7 @@ class FACEGASKET_PT_main_panel(bpy.types.Panel):
 
     def draw_align_step(self, layout, props):
         col = layout.column()
-        col.label(text="Instructions:", icon='INFO')
+        col.label(text="2. Align Face Mesh:", icon='INFO')
         col.label(text="- Clean the STL (remove noise/artifacts)")
         col.label(text="- Align Mesh to face Positive Y Axis (+Y)")
         col.label(text="- Ensure Mesh is centered")
@@ -60,3 +62,26 @@ class FACEGASKET_PT_main_panel(bpy.types.Panel):
         row = layout.row()
         row.scale_y = 1.5
         row.operator("facegasket.confirm_alignment", text="Next", icon='CHECKBOX_HLT')
+
+    def draw_align_cover_step(self, layout, props):
+        col = layout.column()
+        col.label(text="3. Align FaceCover:", icon='INFO')
+        col.label(text="- Position the FaceCover over the Face Mesh")
+        col.label(text="- Ensure proper fit and orientation")
+        
+        layout.separator()
+        
+        row = layout.row()
+        row.scale_y = 1.5
+        row.operator("facegasket.confirm_facecover", text="Next", icon='CHECKBOX_HLT')
+
+    def draw_process_step(self, layout, props):
+        col = layout.column()
+        col.label(text="4. Processing:", icon='INFO')
+        col.label(text="<a lot of things>")
+        
+        layout.separator()
+        
+        row = layout.row()
+        row.scale_y = 1.5
+        row.label(text="Processing...", icon='TIME')

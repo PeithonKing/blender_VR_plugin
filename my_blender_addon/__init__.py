@@ -17,6 +17,7 @@ classes = (
     properties.FaceGasketProperties,
     operators.FACEGASKET_OT_start_wizard,
     operators.FACEGASKET_OT_confirm_alignment,
+    operators.FACEGASKET_OT_confirm_facecover,
     operators.FACEGASKET_OT_reset_wizard,
     panel.FACEGASKET_PT_main_panel,
 )

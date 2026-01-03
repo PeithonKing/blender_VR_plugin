@@ -1,5 +1,6 @@
 import math
 import bpy
+import bmesh
 import os
 
 class FACEGASKET_OT_start_wizard(bpy.types.Operator):
@@ -90,13 +91,57 @@ class FACEGASKET_OT_confirm_alignment(bpy.types.Operator):
             self.report({'ERROR'}, f"Failed to import asset: {str(e)}")
             return {'CANCELLED'}
 
-        # Boolean Operation Temporarily Skipped as per "just import" request
-        # face_obj = context.scene.objects.get("FaceMesh")
-        # if face_obj:
-        #     mod = face_obj.modifiers.new(name="GasketCut", type='BOOLEAN')
-        #     # ...
+        # 4. Advance State to ALIGN_COVER (Step 3)
+        props.step = 'ALIGN_COVER'
         
-        self.report({'INFO'}, f"Gasket Type '{props.face_width}' Imported & Aligned.")
+        self.report({'INFO'}, f"FaceCover Imported. Please align it with the Face Mesh.")
+        return {'FINISHED'}
+
+
+class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
+    """Confirm FaceCover Alignment and perform surface selection"""
+    bl_idname = "facegasket.confirm_facecover"
+    bl_label = "Next"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        props = context.scene.face_gasket_props
+        
+        # Get the FaceCover object
+        face_cover_obj = context.scene.objects.get("face_cover")
+        if not face_cover_obj:
+            self.report({'ERROR'}, "FaceCover object not found!")
+            return {'CANCELLED'}
+        
+        context.view_layer.objects.active = face_cover_obj
+        face_cover_obj.select_set(True)
+        
+        # Enter Edit Mode to select faces
+        bpy.ops.object.mode_set(mode='EDIT')
+        
+        # Deselect all first
+        bpy.ops.mesh.select_all(action='DESELECT')
+        
+        # Get BMesh
+        me = face_cover_obj.data
+        bm = bmesh.from_edit_mesh(me)
+        bm.faces.ensure_lookup_table()
+        
+        # Select target face (Index 7204)
+        target_idx = 7204
+        if target_idx < len(bm.faces):
+            bm.faces[target_idx].select = True
+            bmesh.update_edit_mesh(me)
+            
+            # Select linked faces with sharpness/flatness threshold (10 degrees)
+            bpy.ops.mesh.faces_select_linked_flat(sharpness=math.radians(10.0))
+        else:
+            self.report({'WARNING'}, f"Face Index {target_idx} out of range!")
+
+        # Advance State to PROCESS (Step 4)
+        props.step = 'PROCESS'
+        
+        self.report({'INFO'}, f"Surface Selection Complete.")
         return {'FINISHED'}
 
 class FACEGASKET_OT_reset_wizard(bpy.types.Operator):
@@ -107,6 +152,10 @@ class FACEGASKET_OT_reset_wizard(bpy.types.Operator):
 
     def execute(self, context):
         props = context.scene.face_gasket_props
+        
+        # Switch to Object Mode first (in case we are in Edit Mode)
+        if context.active_object and context.active_object.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
         
         # Select all and delete everything
         bpy.ops.object.select_all(action='SELECT')
