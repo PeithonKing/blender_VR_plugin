@@ -32,11 +32,18 @@ class FACEGASKET_OT_start_wizard(bpy.types.Operator):
         
         face_obj = context.selected_objects[0]
         face_obj.name = "FaceMesh"
-        
+
         # 3. Create Helper Spline from Data
         # Format: [CO_X, CO_Y, CO_Z, HL_X, HL_Y, HL_Z, HR_X, HR_Y, HR_Z]
         data_rows = np.loadtxt("/home/aritra/Documents/temp/vr_face_gasket/python/my_blender_addon/assets/points.csv", delimiter=",")
         data_rows[:, (1, 4, 7)] = 60
+        to_replicate = data_rows[1:-1].copy()
+        to_replicate[:, [0, 3, 6]] *= -1  # mirror
+        original_hl = to_replicate[:, 3:6].copy()  # swap handles
+        original_hr = to_replicate[:, 6:9].copy()  # swap handles
+        to_replicate[:, 3:6] = original_hr
+        to_replicate[:, 6:9] = original_hl
+        full_data = np.vstack((data_rows, to_replicate[::-1]))
 
         # Create Curve Data
         curve_data = bpy.data.curves.new('HelperSpline', type='CURVE')
@@ -45,9 +52,9 @@ class FACEGASKET_OT_start_wizard(bpy.types.Operator):
         
         # Create Spline
         spline = curve_data.splines.new('BEZIER')
-        spline.bezier_points.add(len(data_rows) - 1)
+        spline.bezier_points.add(len(full_data) - 1)
         
-        for i, row in enumerate(data_rows):
+        for i, row in enumerate(full_data):
             bp = spline.bezier_points[i]
             bp.co = row[0:3]
             bp.handle_left = row[3:6]
