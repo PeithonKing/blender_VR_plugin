@@ -137,11 +137,91 @@ class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
             bpy.ops.mesh.faces_select_linked_flat(sharpness=math.radians(10.0))
         else:
             self.report({'WARNING'}, f"Face Index {target_idx} out of range!")
+            return {'CANCELLED'}
+
+        # ========== PROBE EXTRACTION ==========
+        # Duplicate selected faces and separate into new object
+        bpy.ops.mesh.duplicate()
+        bpy.ops.mesh.separate(type='SELECTED')
+        
+        # Exit Edit Mode to work with objects
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        # Find the newly created Probe object
+        # After separate, the new object is selected
+        probe_obj = None
+        for obj in context.selected_objects:
+            if obj != face_cover_obj:
+                probe_obj = obj
+                break
+        
+        if not probe_obj:
+            self.report({'ERROR'}, "Failed to create Probe object!")
+            return {'CANCELLED'}
+        
+        probe_obj.name = "Probe"
+        
+        # ========== HELPERS COLLECTION ==========
+        helpers_col = bpy.data.collections.get("Helpers")
+        if not helpers_col:
+            helpers_col = bpy.data.collections.new("Helpers")
+            context.scene.collection.children.link(helpers_col)
+        
+        # Move face_cover and Probe to Helpers
+        for obj in [face_cover_obj, probe_obj]:
+            # Unlink from current collection(s)
+            for col in obj.users_collection:
+                col.objects.unlink(obj)
+            # Link to Helpers
+            helpers_col.objects.link(obj)
+        
+        # ========== SHRINKWRAP PROJECT ==========
+        face_obj = context.scene.objects.get("FaceMesh")
+        if not face_obj:
+            self.report({'ERROR'}, "FaceMesh object not found!")
+            return {'CANCELLED'}
+        
+        context.view_layer.objects.active = probe_obj
+        probe_obj.select_set(True)
+        
+        sw_mod = probe_obj.modifiers.new(name="ProjectToFace", type='SHRINKWRAP')
+        sw_mod.wrap_method = 'PROJECT'
+        sw_mod.wrap_mode = 'ON_SURFACE'  # Snap Mode
+        sw_mod.use_project_x = False
+        sw_mod.use_project_y = False
+        sw_mod.use_project_z = False
+        # sw_mod.use_negative_direction = False
+        # sw_mod.use_positive_direction = True  # Positive Y direction
+        sw_mod.target = face_obj
+        
+        bpy.ops.object.modifier_apply(modifier="ProjectToFace")
+        
+        # ========== SAVE PROBE VERTICES TO NUMPY ==========
+        import numpy as np
+        
+        # Get world-space vertex coordinates from Probe
+        probe_mesh = probe_obj.data
+        world_matrix = probe_obj.matrix_world
+        
+        vertices = []
+        for vert in probe_mesh.vertices:
+            world_co = world_matrix @ vert.co
+            vertices.append([world_co.x, world_co.y, world_co.z])
+        
+        probe_vertices = np.array(vertices)
+        
+        # Save to assets directory
+        addon_dir = os.path.dirname(__file__)
+        output_path = os.path.join(addon_dir, "assets", "probe_vertices.txt")
+        np.savetxt(output_path, probe_vertices)
+        
+        # ========== HIDE HELPERS (Disabled for debugging) ==========
+        # helpers_col.hide_viewport = True
 
         # Advance State to PROCESS (Step 4)
         props.step = 'PROCESS'
         
-        self.report({'INFO'}, f"Surface Selection Complete.")
+        self.report({'INFO'}, f"Probe vertices saved to {output_path}. ({len(probe_vertices)} points)")
         return {'FINISHED'}
 
 class FACEGASKET_OT_reset_wizard(bpy.types.Operator):
