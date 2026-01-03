@@ -47,11 +47,16 @@ class FACEGASKET_PT_main_panel(bpy.types.Panel):
     def draw_align_step(self, layout, props):
         col = layout.column()
         col.label(text="Instructions:", icon='INFO')
-        col.label(text="- Move/Rotate the 'Helper Spline'")
-        col.label(text="- Align it with the Face mesh")
+        col.label(text="- Clean the STL (remove noise/artifacts)")
+        col.label(text="- Align Mesh to face Positive Y Axis (+Y)")
+        col.label(text="- Ensure Mesh is centered")
+        
+        col.separator()
+        col.label(text="Select Gasket Type:")
+        col.prop(props, "face_width", text="")
         
         layout.separator()
         
         row = layout.row()
         row.scale_y = 1.5
-        row.operator("facegasket.confirm_alignment", text="Confirm Alignment", icon='CHECKBOX_HLT')
+        row.operator("facegasket.confirm_alignment", text="Next", icon='CHECKBOX_HLT')

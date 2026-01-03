@@ -1,4 +1,4 @@
-import numpy as np
+import math
 import bpy
 import os
 
@@ -33,47 +33,10 @@ class FACEGASKET_OT_start_wizard(bpy.types.Operator):
         face_obj = context.selected_objects[0]
         face_obj.name = "FaceMesh"
 
-        # 3. Create Helper Spline from Data
-        # Format: [CO_X, CO_Y, CO_Z, HL_X, HL_Y, HL_Z, HR_X, HR_Y, HR_Z]
-        data_rows = np.loadtxt("/home/aritra/Documents/temp/vr_face_gasket/python/my_blender_addon/assets/points.csv", delimiter=",")
-        data_rows[:, (1, 4, 7)] = 60
-        to_replicate = data_rows[1:-1].copy()
-        to_replicate[:, [0, 3, 6]] *= -1  # mirror
-        original_hl = to_replicate[:, 3:6].copy()  # swap handles
-        original_hr = to_replicate[:, 6:9].copy()  # swap handles
-        to_replicate[:, 3:6] = original_hr
-        to_replicate[:, 6:9] = original_hl
-        full_data = np.vstack((data_rows, to_replicate[::-1]))
-
-        # Create Curve Data
-        curve_data = bpy.data.curves.new('HelperSpline', type='CURVE')
-        curve_data.dimensions = '3D'
-        curve_data.resolution_u = 12
+        # 3. Spline Generation REMOVED (User Pivot)
+        # We only import the face mesh and setup the scene now.
         
-        # Create Spline
-        spline = curve_data.splines.new('BEZIER')
-        spline.bezier_points.add(len(full_data) - 1)
-        
-        for i, row in enumerate(full_data):
-            bp = spline.bezier_points[i]
-            bp.co = row[0:3]
-            bp.handle_left = row[3:6]
-            bp.handle_right = row[6:9]
-            bp.handle_left_type = 'FREE'
-            bp.handle_right_type = 'FREE'
-
-        spline.use_cyclic_u = True # Close loop
-        
-        # Create Object
-        helper_obj = bpy.data.objects.new("HelperSpline", curve_data)
-        context.collection.objects.link(helper_obj)
-        context.view_layer.objects.active = helper_obj
-        helper_obj.select_set(True)
-
-        # Lock Y coordinate
-        helper_obj.lock_location[1] = True
-
-        # 5. Setup Viewport: Orthographic, Looking from +Y
+        # 4. Setup Viewport: Orthographic, Looking from +Y
         for area in context.screen.areas:
             if area.type == 'VIEW_3D':
                 space = area.spaces.active
@@ -86,21 +49,54 @@ class FACEGASKET_OT_start_wizard(bpy.types.Operator):
                         bpy.ops.view3d.view_axis(type='BACK')
                     break
 
-        # 4. Advance State
+        # 5. Advance State
         props.step = 'ALIGN'
         
-        self.report({'INFO'}, "Wizard Started: Align the Helper Spline.")
+        self.report({'INFO'}, "Wizard Started: Face Mesh Imported.")
         return {'FINISHED'}
 
 class FACEGASKET_OT_confirm_alignment(bpy.types.Operator):
     """Confirm Alignment and move to next step"""
     bl_idname = "facegasket.confirm_alignment"
-    bl_label = "Confirm Alignment"
+    bl_label = "Next"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         props = context.scene.face_gasket_props
-        self.report({'INFO'}, "Alignment Confirmed.")
+        
+        # 1. Determine Asset Path
+        addon_dir = os.path.dirname(__file__)
+        assets_dir = os.path.join(addon_dir, "assets")
+        
+        filename = "face_cover_v3.stl" if props.face_width == 'DEFAULT' else "face_cover_wide_v2.stl"
+        filepath = os.path.join(assets_dir, filename)
+        
+        if not os.path.exists(filepath):
+            self.report({'ERROR'}, f"Asset not found: {filepath}")
+            return {'CANCELLED'}
+            
+        # 2. Import Cutter STL
+        try:
+            bpy.ops.wm.stl_import(filepath=filepath)
+            cutter_obj = context.selected_objects[0]
+            cutter_obj.name = "face_cover"
+            
+            # 3. Transform Cutter (User Request)
+            # Rotate 80 degrees on X axis
+            cutter_obj.rotation_euler = (math.radians(80), 0, 0)
+            cutter_obj.location = (0, 50, 30)
+            
+        except Exception as e:
+            self.report({'ERROR'}, f"Failed to import asset: {str(e)}")
+            return {'CANCELLED'}
+
+        # Boolean Operation Temporarily Skipped as per "just import" request
+        # face_obj = context.scene.objects.get("FaceMesh")
+        # if face_obj:
+        #     mod = face_obj.modifiers.new(name="GasketCut", type='BOOLEAN')
+        #     # ...
+        
+        self.report({'INFO'}, f"Gasket Type '{props.face_width}' Imported & Aligned.")
         return {'FINISHED'}
 
 class FACEGASKET_OT_reset_wizard(bpy.types.Operator):
