@@ -307,7 +307,7 @@ class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
         sw_mod.target = gasket_obj  # NewFaceMesh
         sw_mod.offset = 0
         bpy.ops.object.modifier_apply(modifier="Shrinkwrap")
-        
+
         # Print counts
         print("=" * 50)
         print("TWO COPIES CREATED")
@@ -315,6 +315,7 @@ class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
         print(f"Copy_1: {len(copy_1.data.vertices)} verts, {len(copy_1.data.edges)} edges, {len(copy_1.data.polygons)} faces")
         print(f"Copy_2: {len(copy_2.data.vertices)} verts, {len(copy_2.data.edges)} edges, {len(copy_2.data.polygons)} faces")
         print("=" * 50)
+
         # ========== CREATE FACES BETWEEN BOUNDARY EDGES ==========
         # Get mesh data from both copies
         mesh_1 = copy_1.data
@@ -347,16 +348,16 @@ class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
         for p in mesh_2.polygons:
             new_faces.append(tuple(v + offset for v in p.vertices))
         
-        # Find boundary edges in Copy_1 and create bridging quads
-        # Boundary edge = edge with only 1 linked face
-        for edge_idx, edge in enumerate(mesh_1.edges):
-            # Check if boundary (only 1 linked polygon)
-            linked_faces = [p for p in mesh_1.polygons if edge.key[0] in p.vertices and edge.key[1] in p.vertices]
-            
-            if len(linked_faces) == 1:
+        # Find boundary edges in Copy_1 using bmesh and create bridging quads
+        bm = bmesh.new()
+        bm.from_mesh(mesh_1)
+        bm.edges.ensure_lookup_table()
+        
+        for edge_idx, e in enumerate(bm.edges):
+            if e.is_boundary:
                 # This is a boundary edge
-                v1_idx = edge.vertices[0]
-                v2_idx = edge.vertices[1]
+                v1_idx = e.verts[0].index
+                v2_idx = e.verts[1].index
                 
                 # Corresponding edge in Copy_2 (same index)
                 edge_2 = mesh_2.edges[edge_idx]
@@ -365,6 +366,8 @@ class FACEGASKET_OT_confirm_facecover(bpy.types.Operator):
                 
                 # Create quad face (order matters for normals)
                 new_faces.append((v1_idx, v2_idx, v4_idx, v3_idx))
+        
+        bm.free()
         
         # Create the shell mesh
         shell_mesh = bpy.data.meshes.new("GasketShell_mesh")
