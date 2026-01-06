@@ -9,14 +9,27 @@ class FaceGasketProperties(bpy.types.PropertyGroup):
         description="Current step in the wizard workflow",
         items=[
             ('START', "Start", "Select file and begin"),
-            ('ALIGN', "Align", "Align helper mesh"),
-            ('PROCESS', "Process", "Cut and place logo"),
+            ('ALIGN', "Align", "Align face mesh"),
+            ('ALIGN_COVER', "Align Cover", "Align face cover with mesh"),
+            ('PROCESS', "Process", "Processing"),
             ('FINISH', "Finish", "Finalize and export"),
         ],
         default='START'
     )
     
     # Path to the face mesh STL selected by the user
+    face_width: bpy.props.EnumProperty(
+        name="Gasket Type",
+        description="Select the type of gasket",
+        items=[
+            ('DEFAULT', "Default", "Standard Gasket Type"),
+            ('WIDE', "Wide", "Wide Gasket Type"),
+        ],
+        default='DEFAULT'
+    )
+    
+    # Internal usage: Store reference names if needed, or just rely on active object
+    # For now, we trust the state machine context.
     face_mesh_path: bpy.props.StringProperty(
         name="Face Mesh",
         description="Path to the user's face scan STL",
